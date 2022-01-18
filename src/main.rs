@@ -1,7 +1,7 @@
 use fmt_extra::AsciiStr;
 use futures_lite::AsyncBufReadExt;
 use glommio::net::{TcpListener, UdpSocket};
-use glommio::{prelude::*, Task};
+use glommio::prelude::*;
 use listenfd::ListenFd;
 use std::net::Ipv6Addr;
 use std::os::unix::io::{FromRawFd, IntoRawFd};
@@ -24,12 +24,11 @@ fn main() {
             UdpSocket::bind((Ipv6Addr::UNSPECIFIED, 514)).unwrap()
         };
 
-        let tcp_t = Task::local(async {
+        let tcp_t = glommio::spawn_local(async {
             let tcp_l = tcp_l;
             loop {
-                let mut s = tcp_l.accept().await.unwrap();
-                s.set_buffer_size(2048);
-                Task::local(async {
+                let s = tcp_l.accept().await.unwrap().buffered();
+                glommio::spawn_local(async {
                     let mut s = s;
                     let src = s.peer_addr().unwrap();
                     let mut buf = Vec::new();
@@ -57,7 +56,7 @@ fn main() {
             }
         });
 
-        Task::local(async {
+        glommio::spawn_local(async {
             let udp_l = udp_l;
             let mut buf = [0u8; 2048];
             loop {
