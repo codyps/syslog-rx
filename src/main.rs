@@ -1,43 +1,62 @@
-use std::net::Ipv6Addr;
-use std::net::ToSocketAddrs;
-use mio::net::UdpSocket;
-use mio::{Events, Poll, Interest, Token};
-use std::io::ErrorKind;
-use std::error::Error;
 use fmt_extra::AsciiStr;
+use futures_lite::AsyncBufReadExt;
+use glommio::net::{TcpListener, UdpSocket};
+use glommio::{prelude::*, Task};
+use std::net::Ipv6Addr;
 
-fn main() -> Result<(), Box<dyn Error>> {
-    let mut sa = (Ipv6Addr::UNSPECIFIED, 514).to_socket_addrs().unwrap();
-    let mut u = UdpSocket::bind(sa.next().unwrap()).unwrap();
+fn main() {
+    let local_ex = LocalExecutor::default();
 
-    let mut poll = Poll::new()?;
-    let mut events = Events::with_capacity(1024);
+    local_ex.run(async {
+        let tcp_t = Task::local(async {
+            let tcp_l = TcpListener::bind((Ipv6Addr::UNSPECIFIED, 514)).unwrap();
+            loop {
+                let mut s = tcp_l.accept().await.unwrap();
+                s.set_buffer_size(2048);
+                Task::local(async {
+                    let mut s = s;
+                    let src = s.peer_addr().unwrap();
+                    let mut buf = Vec::new();
+                    loop {
+                        s.read_until(b'\n', &mut buf).await.unwrap();
 
-    poll.registry().register(&mut u, Token(0), Interest::READABLE)?;
+                        let is_truncated = if buf.last() != Some(&b'\n') {
+                            true
+                        } else {
+                            buf.pop();
+                            false
+                        };
 
-    let mut buf = [0u8;4096];
-    loop {
-        poll.poll(&mut events, None)?;
+                        let t = AsciiStr(&buf);
 
-        for event in &events {
-            if event.token() == Token(0) && event.is_readable() {
-                loop {
-                    let v = u.recv_from(&mut buf);
-                    match v {
-                        Err(ref e) => {
-                            if e.kind() == ErrorKind::WouldBlock {
-                                break;
-                            }
-                            v?;
-                        },
-                        Ok((sz, src)) => {
-                            let p = &buf[..sz];
-                            let t = AsciiStr(p);
-                            println!("{}: {}", src, t);
+                        println!("{}: {}", src, t);
+                        if is_truncated {
+                            println!("# warning: previous log message was truncated");
                         }
+                    }
+                })
+                .detach();
+            }
+        });
+
+        Task::local(async {
+            let udp_l = UdpSocket::bind((Ipv6Addr::UNSPECIFIED, 514)).unwrap();
+            let mut buf = [0u8; 2048];
+            loop {
+                match udp_l.recv_from(&mut buf).await {
+                    Ok((sz, src)) => {
+                        let b = &buf[..sz];
+                        let t = AsciiStr(b);
+                        println!("{}: {}", src, t);
+                    }
+                    Err(e) => {
+                        println!("# error: {}", e);
                     }
                 }
             }
-        }
-    }
+        })
+        .detach();
+
+        tcp_t.await;
+    })
 }
