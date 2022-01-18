@@ -1,0 +1,9 @@
+[Unit]
+PartOf=syslog-rx.service
+
+[Socket]
+ListenStream=514
+ListenDatagram=514
+
+[Install]
+WantedBy=sockets.target

@@ -8,3 +8,7 @@ edition = "2021"
 fmt-extra = "0.2.1"
 glommio = "*"
 futures-lite = "*"
+listenfd = "*"
+
+[patch.crates-io]
+glommio = { path = "../../d/glommio/glommio" }

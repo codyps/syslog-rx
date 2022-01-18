@@ -2,14 +2,30 @@ use fmt_extra::AsciiStr;
 use futures_lite::AsyncBufReadExt;
 use glommio::net::{TcpListener, UdpSocket};
 use glommio::{prelude::*, Task};
+use listenfd::ListenFd;
 use std::net::Ipv6Addr;
+use std::os::unix::io::{FromRawFd, IntoRawFd};
 
 fn main() {
     let local_ex = LocalExecutor::default();
 
     local_ex.run(async {
+        let mut listenfd = ListenFd::from_env();
+
+        let tcp_l = if let Some(listener) = listenfd.take_tcp_listener(0).unwrap() {
+            unsafe { TcpListener::from_raw_fd(listener.into_raw_fd()) }
+        } else {
+            TcpListener::bind((Ipv6Addr::UNSPECIFIED, 514)).unwrap()
+        };
+
+        let udp_l = if let Some(listener) = listenfd.take_udp_socket(1).unwrap() {
+            unsafe { UdpSocket::from_raw_fd(listener.into_raw_fd()) }
+        } else {
+            UdpSocket::bind((Ipv6Addr::UNSPECIFIED, 514)).unwrap()
+        };
+
         let tcp_t = Task::local(async {
-            let tcp_l = TcpListener::bind((Ipv6Addr::UNSPECIFIED, 514)).unwrap();
+            let tcp_l = tcp_l;
             loop {
                 let mut s = tcp_l.accept().await.unwrap();
                 s.set_buffer_size(2048);
@@ -42,7 +58,7 @@ fn main() {
         });
 
         Task::local(async {
-            let udp_l = UdpSocket::bind((Ipv6Addr::UNSPECIFIED, 514)).unwrap();
+            let udp_l = udp_l;
             let mut buf = [0u8; 2048];
             loop {
                 match udp_l.recv_from(&mut buf).await {
