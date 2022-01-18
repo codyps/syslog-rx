@@ -20,18 +20,20 @@ fn main() {
                     loop {
                         s.read_until(b'\n', &mut buf).await.unwrap();
 
-                        let is_truncated = if buf.last() != Some(&b'\n') {
-                            true
-                        } else {
-                            buf.pop();
-                            false
-                        };
+                        // split into chunks delineated by b'\n'
+                        for m in buf.split_inclusive(|x| *x == b'\n') {
+                            let (is_truncated, m) = if m.last() != Some(&b'\n') {
+                                (true, m)
+                            } else {
+                                (false, &m[..m.len() - 1])
+                            };
 
-                        let t = AsciiStr(&buf);
+                            let t = AsciiStr(&m);
 
-                        println!("{}: {}", src, t);
-                        if is_truncated {
-                            println!("# warning: previous log message was truncated");
+                            println!("{}: {}", src, t);
+                            if is_truncated {
+                                println!("# warning: previous log message was truncated");
+                            }
                         }
                     }
                 })
