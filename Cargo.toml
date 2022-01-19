@@ -12,3 +12,6 @@ listenfd = "*"
 
 [patch.crates-io]
 glommio = { path = "../../d/glommio/glommio" }
+
+[profile.release]
+debug = 1

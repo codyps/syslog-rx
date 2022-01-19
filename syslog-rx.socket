@@ -2,6 +2,9 @@
 PartOf=syslog-rx.service
 
 [Socket]
+Backlog=1024
+DeferAcceptSec=10
+ReusePort=yes
 ListenStream=514
 ListenDatagram=514
 

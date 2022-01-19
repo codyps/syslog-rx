@@ -6,20 +6,41 @@ Restart=always
 ExecStart=/usr/local/bin/syslog-rx
 
 LimitMEMLOCK=512K
-Backlog=1024
-DeferAcceptSec=10
-ReusePort=yes
 
 # Number of open tcp connections + 1
 #FileDescriptorStoreMax=512
 
-ProtectProc=noaccess
+#SystemCallFilter=@system-service ~@privileged
+SystemCallFilter=@basic-io @network-io @io-event @memlock @signal @file-system @process @ipc @aio
+SystemCallErrorNumber=EPERM
+
+RestrictNamespaces=yes
+RestrictAddressFamilies=AF_INET6
+SystemCallArchitectures=native
+ProcSubset=pid
+ProtectProc=invisible
 DynamicUser=yes
 NoNewPrivileges=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+RemoveIPC=yes
+PrivateMounts=yes
 ProtectKernelTunables=yes
 ProtectHome=yes
 ProtectClock=yes
 PrivateUsers=yes
+DeviceAllow=
+PrivateDevices=yes
+PrivateTmp=yes
+MemoryDenyWriteExecute=yes
+LockPersonality=yes
+ProtectHostname=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectKernelModules=yes
+PrivateIPC=yes
+CapabilityBoundingSet=
+UMask=0000
 
 [Install]
 WantedBy=multi-user.target
