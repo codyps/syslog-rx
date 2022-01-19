@@ -1,0 +1,10 @@
+#! /usr/bin/env bash
+set -xeuf -o pipefail
+
+: ${SD_UNIT_DIR:=/etc/systemd/system}
+: ${PREFIX:=/usr/local}
+: ${BINDIR:=$PREFIX/bin}
+
+cp syslog-rx.service "$SD_UNIT_DIR"
+cp syslog-rx.socket "$SD_UNIT_DIR"
+cp -f target/release/syslog-rx "$BINDIR"
