@@ -33,7 +33,10 @@ fn main() {
                     let src = s.peer_addr().unwrap();
                     let mut buf = Vec::new();
                     loop {
-                        s.read_until(b'\n', &mut buf).await.unwrap();
+                        if let Err(e) = s.read_until(b'\n', &mut buf).await {
+                            println!("{}: read failed, disconnecting: {}", src, e);
+                            break;
+                        }
 
                         // split into chunks delineated by b'\n'
                         for m in buf.split_inclusive(|x| *x == b'\n') {

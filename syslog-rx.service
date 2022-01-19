@@ -6,6 +6,12 @@ Restart=always
 ExecStart=/usr/local/bin/syslog-rx
 
 LimitMEMLOCK=512K
+Backlog=1024
+DeferAcceptSec=10
+ReusePort=yes
+
+# Number of open tcp connections + 1
+#FileDescriptorStoreMax=512
 
 ProtectProc=noaccess
 DynamicUser=yes
