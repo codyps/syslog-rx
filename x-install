@@ -1,10 +1,12 @@
 #! /usr/bin/env bash
 set -xeuf -o pipefail
 
-: ${SD_UNIT_DIR:=/etc/systemd/system}
 : ${PREFIX:=/usr/local}
+: ${SD_UNIT_DIR:=$PREFIX/lib/systemd/system}
 : ${BINDIR:=$PREFIX/bin}
 
+mkdir -p "$SD_UNIT_DIR"
 cp syslog-rx.service "$SD_UNIT_DIR"
 cp syslog-rx.socket "$SD_UNIT_DIR"
+mkdir -p "$BINDIR"
 cp -f target/release/syslog-rx "$BINDIR"
